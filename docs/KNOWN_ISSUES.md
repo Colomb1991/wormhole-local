@@ -14,26 +14,7 @@ Severità:
 
 ## 🔴 Critici
 
-### SEC-001 — Password DB Supabase esposta negli output (DA RUOTARE)
-
-**Sessione:** 2026-06-08 (vedi `docs/sessions/2026-06-08-setup-iniziale.md`)
-
-Durante i tentativi falliti di `db:push`, la connection string con la
-**password reale del database Supabase** è comparsa **in chiaro** nei messaggi
-di errore (la URL veniva stampata dal driver `postgres`). È rimasta nel
-transcript della sessione Claude Code.
-
-Il repo è privato e l'esposizione è locale (non committata), ma per igiene la
-password va **considerata compromessa** finché non viene ruotata.
-
-**Azione richiesta (Stefano):**
-1. Supabase → Project Settings → Database → **Reset database password**.
-2. Aggiornare `DATABASE_URL` e `DIRECT_URL` in `.env.local` con la nuova
-   password (ricordando: schema `postgresql://`, URL-encoding dei caratteri
-   speciali, porta 6543 per `DATABASE_URL` / 5432 per `DIRECT_URL`).
-3. Aggiornare le env vars su Vercel (al passo 7).
-
-**Chiudere questa voce** (spostarla in ✅ Risolti) solo dopo la rotazione.
+_(nessuno al momento)_
 
 ---
 
@@ -56,6 +37,29 @@ _(nessuno al momento)_
 ---
 
 ## ✅ Risolti
+
+### RIS-002 — Password DB Supabase esposta negli output → ruotata
+
+**Sessione:** 2026-06-08 (vedi `docs/sessions/2026-06-08-setup-iniziale.md`)
+**Severità originale:** 🔴 Critico (era SEC-001).
+
+Durante i tentativi falliti di `db:push`, la connection string con la password
+reale del DB Supabase era comparsa **in chiaro** negli output di errore (la URL
+veniva stampata dal driver `postgres`), restando nel transcript della sessione.
+
+**Risolto il 2026-06-08:** Stefano ha eseguito **Reset database password** su
+Supabase e aggiornato `DATABASE_URL` e `DIRECT_URL` in `.env.local`. La
+connessione è stata verificata con una query di lettura su entrambi gli endpoint
+(session pooler 5432 e transaction pooler 6543): **entrambe OK**. La vecchia
+password (compromessa) non è più valida.
+
+**Lezione appresa:** non stampare mai connection string complete negli output.
+Le due variabili devono contenere la **stessa** password; preferire password
+**alfanumeriche** per evitare problemi di URL-encoding (un `%` non codificato
+rompe `decodeURIComponent` nel driver `postgres`).
+
+**Da non dimenticare:** aggiornare la password anche nelle env vars di **Vercel**
+quando si configurano i progetti (passo 7).
 
 ### RIS-001 — Import relativi con estensione `.js` rompevano drizzle-kit
 
