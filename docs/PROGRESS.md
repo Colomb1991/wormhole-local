@@ -63,3 +63,53 @@ Formato: data, sessione, focus, cosa fatto, in sospeso, prossimo.
 Scaffolding generato da Claude (interfaccia web) — non da Claude Code locale.
 Vedi `DECISIONS.md` ADR-001 per la decisione di workflow tra Stefano e gli
 strumenti di sviluppo AI.
+
+---
+
+## 2026-06-08 (Lun) — Setup operativo via Claude Code
+
+**Sessione:** Claude Code locale (esecutore sul repo), in tandem con Claude
+Opus 4.8 web (consulente) e Stefano (ponte). Vedi `DECISIONS.md` ADR-001.
+**Focus:** Eseguire i passi 2-5 di `SETUP.md`.
+
+### Fatto
+
+- [x] Toolchain: attivato `pnpm@9.15.0` via corepack (shim in `%LOCALAPPDATA%`,
+      aggiunto al PATH utente). `pnpm install` → 455 pacchetti.
+- [x] Verifiche locali: 49 test (Vitest), typecheck e lint puliti.
+- [x] Fix difetto scaffolding: rimosse le estensioni `.js` dagli import
+      relativi (57 occorrenze in 27 file) — rompevano drizzle-kit sotto
+      `moduleResolution: "bundler"`. Vedi `KNOWN_ISSUES.md` RIS-001.
+- [x] `db:generate` → prima migrazione `0000_mean_skin.sql` (18 tabelle, 25 FK).
+- [x] Schema applicato al DB Supabase reale con `pnpm db:migrate` (db:push
+      scartato perché interattivo — vedi KNOWN_ISSUES).
+- [x] Verifica indipendente via Postgres: 18 tabelle, 25 FK, 1 migrazione
+      registrata in `drizzle.__drizzle_migrations`.
+- [x] `db:seed` → tenant `cinese-usdt`, 7 categorie, 8 piatti, 7 CAP, 1 customer
+      di test. Idempotenza verificata (secondo run: nessun duplicato).
+- [x] Git: `.gitignore` esteso (`*.tsbuildinfo`, `.claude/`), `.gitattributes`
+      (`eol=lf`). Verifica sicurezza: `.env.local` NON committato.
+- [x] Primo commit `40ac21e` (121 file); branch `main` e `dev` pushati su
+      GitHub. CI GitHub Actions avviata.
+- [x] Documentazione: ADR-001 aggiornato (workflow in tandem), creata
+      `docs/sessions/` + report `2026-06-08-setup-iniziale.md`, KNOWN_ISSUES
+      RIS-001 e note db:push/password.
+
+### In sospeso (passa a Stefano / prossime sessioni)
+
+- Passo 6 (manuale): branch protection su `main` + label GitHub.
+- Passo 7 (manuale): deploy 3 progetti Vercel.
+- **Rotazione password DB Supabase** (comparsa in chiaro negli output di errore;
+  vedi KNOWN_ISSUES). Poi aggiornare `.env.local` ed env Vercel.
+- VAPID keys (DT-003), dati reali ristorante (DT-001), distanze CAP (DT-002).
+
+### Prossimo
+
+- Prima feature: onboarding cliente (sez. 1 `FEATURE_SPECS.md`).
+
+### Note
+
+Branch corrente: `dev`. I comandi pnpm di questa sessione usano il prefisso PATH
+`%LOCALAPPDATA%\pnpm-shim`; in terminali nuovi `pnpm` funziona diretto. `gh` CLI
+non installato: il push ha usato le credenziali già in cache nel Windows
+Credential Manager.

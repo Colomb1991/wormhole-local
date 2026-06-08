@@ -14,7 +14,26 @@ Severità:
 
 ## 🔴 Critici
 
-_(nessuno al momento)_
+### SEC-001 — Password DB Supabase esposta negli output (DA RUOTARE)
+
+**Sessione:** 2026-06-08 (vedi `docs/sessions/2026-06-08-setup-iniziale.md`)
+
+Durante i tentativi falliti di `db:push`, la connection string con la
+**password reale del database Supabase** è comparsa **in chiaro** nei messaggi
+di errore (la URL veniva stampata dal driver `postgres`). È rimasta nel
+transcript della sessione Claude Code.
+
+Il repo è privato e l'esposizione è locale (non committata), ma per igiene la
+password va **considerata compromessa** finché non viene ruotata.
+
+**Azione richiesta (Stefano):**
+1. Supabase → Project Settings → Database → **Reset database password**.
+2. Aggiornare `DATABASE_URL` e `DIRECT_URL` in `.env.local` con la nuova
+   password (ricordando: schema `postgresql://`, URL-encoding dei caratteri
+   speciali, porta 6543 per `DATABASE_URL` / 5432 per `DIRECT_URL`).
+3. Aggiornare le env vars su Vercel (al passo 7).
+
+**Chiudere questa voce** (spostarla in ✅ Risolti) solo dopo la rotazione.
 
 ---
 
@@ -118,3 +137,21 @@ CLI. Non scriptabili nel repo.
 
 **Quando affrontare:** prima di aprire la prima Issue (idealmente subito
 dopo il primo push).
+
+### DT-006 — `db:push` interattivo non pilotabile da Claude Code → usare `db:migrate`
+
+`packages/database/drizzle.config.ts` ha `strict: true`, quindi
+`pnpm db:push` (drizzle-kit push) mostra un menu di conferma interattivo a
+frecce prima di eseguire le statement. La shell non interattiva di Claude Code
+**non può guidare quel menu** → il comando resta bloccato.
+
+**Metodo standard d'ora in poi:** applicare lo schema al DB con
+**`pnpm db:migrate`**, che è non interattivo, applica i file di migrazione già
+generati e revisionati (`migrations/*.sql`) e ne tiene lo storico in
+`drizzle.__drizzle_migrations`. Flusso: `pnpm db:generate` → revisione del
+`.sql` → `pnpm db:migrate`.
+
+`db:push` resta utilizzabile solo manualmente da Stefano in un terminale
+interattivo, se mai servisse un sync rapido senza migrazione.
+
+**Quando affrontare:** già adottato. Voce informativa per le sessioni future.
