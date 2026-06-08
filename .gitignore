@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Environment (NEVER commit these)
+.env
+.env.local
+.env.*.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Claude Code (impostazioni locali della macchina, non condivise)
+.claude/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cache
+.cache/
+.turbo/
+.eslintcache
+
+# Test
+coverage/
+playwright-report/
+.playwright/
+test-results/
+
+# OS
+Thumbs.db
+
+# Drizzle
+drizzle/.snapshots/
+
+# Vercel
+.vercel

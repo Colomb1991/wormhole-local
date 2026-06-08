@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "jsx": "preserve",
+    "incremental": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": false,
+    "checkJs": false,
+    "baseUrl": ".",
+    "paths": {
+      "@wormhole/database": ["./packages/database/src/index.ts"],
+      "@wormhole/database/*": ["./packages/database/src/*"],
+      "@wormhole/shared": ["./packages/shared/src/index.ts"],
+      "@wormhole/shared/*": ["./packages/shared/src/*"],
+      "@wormhole/ui": ["./packages/ui/src/index.ts"],
+      "@wormhole/ui/*": ["./packages/ui/src/*"],
+      "@wormhole/core": ["./packages/core/src/index.ts"],
+      "@wormhole/core/*": ["./packages/core/src/*"]
+    }
+  },
+  "exclude": ["node_modules", ".next", "dist", "build", "coverage"]
+}

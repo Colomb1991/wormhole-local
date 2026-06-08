@@ -1,0 +1,10 @@
+// Re-export di tutte le tabelle e i tipi per il client Drizzle.
+export * from './tenants'
+export * from './users'
+export * from './menu'
+export * from './customers'
+export * from './orders'
+export * from './postal-codes'
+export * from './schedule'
+export * from './feedback'
+export * from './system'

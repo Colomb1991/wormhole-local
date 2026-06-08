@@ -1,0 +1,48 @@
+{
+  "name": "wormhole-local",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Multi-tenant food delivery PWA — v0 of Wormhole",
+  "author": "Stefano Colombini <founder@wormholenetwork.io>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "dev:client": "pnpm --filter @wormhole/client dev",
+    "dev:owner": "pnpm --filter @wormhole/owner dev",
+    "dev:admin": "pnpm --filter @wormhole/admin dev",
+    "build": "pnpm --filter \"./apps/*\" build",
+    "start": "pnpm --parallel --filter \"./apps/*\" start",
+    "lint": "pnpm --recursive lint",
+    "typecheck": "pnpm --recursive typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:generate": "pnpm --filter @wormhole/database db:generate",
+    "db:migrate": "pnpm --filter @wormhole/database db:migrate",
+    "db:push": "pnpm --filter @wormhole/database db:push",
+    "db:studio": "pnpm --filter @wormhole/database db:studio",
+    "db:seed": "pnpm --filter @wormhole/database db:seed",
+    "build:distance-matrix": "tsx scripts/distances-matrix.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.2",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "typescript-eslint": "^8.18.1",
+    "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.6.9",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "@vitest/coverage-v8": "^2.1.8",
+    "@playwright/test": "^1.49.1"
+  }
+}

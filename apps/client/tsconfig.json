@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./*"],
+      "@wormhole/database": ["../../packages/database/src/index.ts"],
+      "@wormhole/database/*": ["../../packages/database/src/*"],
+      "@wormhole/shared": ["../../packages/shared/src/index.ts"],
+      "@wormhole/shared/*": ["../../packages/shared/src/*"],
+      "@wormhole/ui": ["../../packages/ui/src/index.ts"],
+      "@wormhole/ui/*": ["../../packages/ui/src/*"],
+      "@wormhole/core": ["../../packages/core/src/index.ts"],
+      "@wormhole/core/*": ["../../packages/core/src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next"]
+}
