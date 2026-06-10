@@ -1,16 +1,28 @@
 /**
- * Seed iniziale del database.
+ * Seed del database — Ristorante Cinese "Al Mare" (Livorno).
  *
- * Popola un tenant "cinese-usdt" placeholder con menu di esempio, CAP di
- * Livorno e (in dev) un customer di test. Idempotente: rileva se il tenant
- * esiste già e in quel caso non duplica.
+ * Popola/aggiorna il tenant `cinese-usdt` con il menu reale (vedi
+ * `docs/menu-reale.md` e `seed-menu.ts`), i CAP di Livorno e (in dev) un
+ * customer di test.
+ *
+ * Idempotente per riconciliazione, non per semplice "skip se esiste":
+ *  - Tenant: upsert per slug (i dati anagrafici vengono aggiornati a ogni run).
+ *  - Categorie: upsert per nome; le categorie obsolete (placeholder) vengono
+ *    rimosse.
+ *  - Piatti: upsert per (tenantId, menuNumber); i piatti senza numero o non più
+ *    presenti nel menu (placeholder) vengono rimossi.
+ *  - Disponibilità (`isAvailable`): impostata solo all'inserimento, MAI
+ *    sovrascritta su update — così i toggle "esaurito" del titolare sopravvivono
+ *    a un nuovo seed.
  *
  * Esecuzione: `pnpm db:seed`
  */
 import 'dotenv/config'
 import { config } from 'dotenv'
 import { resolve } from 'node:path'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
+
+import { MENU_CATEGORIES, MENU_ITEMS } from './seed-menu'
 
 // Carica .env.local dalla root prima di importare il client.
 config({ path: resolve(process.cwd(), '../../.env.local') })
@@ -28,11 +40,22 @@ const {
 
 const TENANT_SLUG = 'cinese-usdt'
 
+/** Dati anagrafici del ristorante reale (da `docs/menu-reale.md`). */
+const RESTAURANT = {
+  name: 'Al Mare — Ristorante Cinese',
+  address: 'Corso Mazzini 341', // numero civico da confermare con la titolare
+  postalCode: '57126',
+  city: 'Livorno',
+  // Telefono fisso 0586.80.72.82 → E.164. (Cellulare 328.06.36.863 in tagline.)
+  phone: '+390586807282',
+  tagline: 'Cinese • Delivery & Take Away • Livorno • tel. 0586 807282',
+} as const
+
 async function main() {
   console.info('🌱 Seed Wormhole Local — inizio')
 
   // ----------------------------------------------------------------------
-  // Tenant
+  // Tenant (upsert per slug)
   // ----------------------------------------------------------------------
   const existingTenant = await db.query.tenants.findFirst({
     where: eq(tenants.slug, TENANT_SLUG),
@@ -41,27 +64,39 @@ async function main() {
   let tenantId: string
 
   if (existingTenant) {
-    console.info(`✓ Tenant "${TENANT_SLUG}" già esistente (${existingTenant.id})`)
     tenantId = existingTenant.id
+    await db
+      .update(tenants)
+      .set({
+        name: RESTAURANT.name,
+        address: RESTAURANT.address,
+        postalCode: RESTAURANT.postalCode,
+        city: RESTAURANT.city,
+        phone: RESTAURANT.phone,
+        tagline: RESTAURANT.tagline,
+        updatedAt: new Date(),
+      })
+      .where(eq(tenants.id, tenantId))
+    console.info(`✓ Tenant "${TENANT_SLUG}" aggiornato (${tenantId})`)
   } else {
     const [created] = await db
       .insert(tenants)
       .values({
         slug: TENANT_SLUG,
-        name: 'Ristorante Cinese USDT',
-        address: 'Corso Mazzini 341',
-        postalCode: '57126',
-        city: 'Livorno',
+        name: RESTAURANT.name,
+        address: RESTAURANT.address,
+        postalCode: RESTAURANT.postalCode,
+        city: RESTAURANT.city,
         country: 'IT',
-        // Coordinate approssimate di Corso Mazzini, Livorno
+        // Coordinate approssimate di Corso Mazzini, Livorno.
         // Da raffinare con `scripts/distances-matrix.ts` (Nominatim).
         latitude: '43.5453',
         longitude: '10.3163',
-        phone: '+39000000000',
+        phone: RESTAURANT.phone,
         email: 'placeholder@example.com',
         logoUrl: null,
         brandColor: '#00A893',
-        tagline: 'Consegna a domicilio • Livorno',
+        tagline: RESTAURANT.tagline,
         status: 'active',
         config: {
           slotDurationMinutes: 30,
@@ -100,151 +135,140 @@ async function main() {
   }
 
   // ----------------------------------------------------------------------
-  // Menu categories
+  // Categorie (upsert per nome, rimozione obsolete)
   // ----------------------------------------------------------------------
   const existingCategories = await db.query.menuCategories.findMany({
     where: eq(menuCategories.tenantId, tenantId),
   })
+  const existingCatByName = new Map(existingCategories.map((c) => [c.name, c]))
+  const desiredCatNames = new Set(MENU_CATEGORIES.map((c) => c.name))
+  const categoryIdByName = new Map<string, string>()
 
-  let categoriesByName: Record<string, string> = {}
-  if (existingCategories.length > 0) {
-    categoriesByName = Object.fromEntries(existingCategories.map((c) => [c.name, c.id]))
-    console.info(`✓ Categorie già presenti (${existingCategories.length})`)
-  } else {
-    const categoryData = [
-      { name: 'Antipasti', sortOrder: 1 },
-      { name: 'Primi', sortOrder: 2 },
-      { name: 'Secondi', sortOrder: 3 },
-      { name: 'Sushi & Sashimi', sortOrder: 4 },
-      { name: 'Riso & Spaghetti', sortOrder: 5 },
-      { name: 'Bibite', sortOrder: 6 },
-      { name: 'Dolci', sortOrder: 7 },
-    ]
-
-    const inserted = await db
-      .insert(menuCategories)
-      .values(categoryData.map((c) => ({ ...c, tenantId })))
-      .returning()
-
-    categoriesByName = Object.fromEntries(inserted.map((c) => [c.name, c.id]))
-    console.info(`✓ Create ${inserted.length} categorie`)
+  let catCreated = 0
+  let catUpdated = 0
+  for (const cat of MENU_CATEGORIES) {
+    const existing = existingCatByName.get(cat.name)
+    if (existing) {
+      await db
+        .update(menuCategories)
+        .set({ sortOrder: cat.sortOrder, isActive: true, updatedAt: new Date() })
+        .where(eq(menuCategories.id, existing.id))
+      categoryIdByName.set(cat.name, existing.id)
+      catUpdated++
+    } else {
+      const [created] = await db
+        .insert(menuCategories)
+        .values({ tenantId, name: cat.name, sortOrder: cat.sortOrder })
+        .returning()
+      if (!created) throw new Error(`Failed to create category ${cat.name}`)
+      categoryIdByName.set(cat.name, created.id)
+      catCreated++
+    }
   }
+  console.info(`✓ Categorie: ${catCreated} create, ${catUpdated} aggiornate (${desiredCatNames.size} totali)`)
 
   // ----------------------------------------------------------------------
-  // Piatti di esempio (placeholder)
+  // Piatti (upsert per menuNumber, rimozione obsoleti/placeholder)
   // ----------------------------------------------------------------------
+  // Prep time di default per categoria.
+  const prepByCategory = new Map(MENU_CATEGORIES.map((c) => [c.name, c.defaultPrepMinutes]))
+
   const existingItems = await db.query.menuItems.findMany({
     where: eq(menuItems.tenantId, tenantId),
   })
+  const existingItemByNumber = new Map(
+    existingItems.filter((i) => i.menuNumber != null).map((i) => [i.menuNumber as string, i])
+  )
 
-  if (existingItems.length === 0) {
-    const items = [
-      {
-        categoryId: categoriesByName['Antipasti'],
-        name: 'Ravioli alla piastra (5pz)',
-        description: 'Ravioli al maiale alla piastra',
-        priceCents: 600,
-        prepTimeMinutes: 15,
-        sortOrder: 1,
-      },
-      {
-        categoryId: categoriesByName['Antipasti'],
-        name: 'Involtini primavera (2pz)',
-        description: 'Croccanti involtini con verdure',
-        priceCents: 400,
-        prepTimeMinutes: 8,
-        sortOrder: 2,
-      },
-      {
-        categoryId: categoriesByName['Primi'],
-        name: 'Spaghetti di soia con verdure',
-        description: 'Spaghetti di soia saltati con verdure miste',
-        priceCents: 550,
-        prepTimeMinutes: 5,
-        sortOrder: 1,
-      },
-      {
-        categoryId: categoriesByName['Riso & Spaghetti'],
-        name: 'Riso alla cantonese',
-        description: 'Riso saltato con prosciutto, uova, piselli',
-        priceCents: 600,
-        prepTimeMinutes: 8,
-        sortOrder: 1,
-      },
-      {
-        categoryId: categoriesByName['Secondi'],
-        name: 'Pollo con mandorle',
-        description: 'Pollo croccante saltato con mandorle',
-        priceCents: 900,
-        prepTimeMinutes: 12,
-        sortOrder: 1,
-      },
-      {
-        categoryId: categoriesByName['Secondi'],
-        name: 'Maiale in agrodolce',
-        description: 'Maiale fritto con salsa agrodolce',
-        priceCents: 950,
-        prepTimeMinutes: 12,
-        sortOrder: 2,
-      },
-      {
-        categoryId: categoriesByName['Bibite'],
-        name: 'Coca-Cola 33cl',
-        description: null,
-        priceCents: 250,
-        vatRate: 22,
-        prepTimeMinutes: 1,
-        sortOrder: 1,
-      },
-      {
-        categoryId: categoriesByName['Dolci'],
-        name: 'Banane fritte',
-        description: 'Banane in tempura con miele',
-        priceCents: 400,
-        prepTimeMinutes: 6,
-        sortOrder: 1,
-      },
-    ]
+  let itemCreated = 0
+  let itemUpdated = 0
+  // sortOrder progressivo dentro ogni categoria.
+  const sortCounters = new Map<string, number>()
 
-    await db.insert(menuItems).values(
-      items.map((item) => ({
+  for (const item of MENU_ITEMS) {
+    const categoryId = categoryIdByName.get(item.category)
+    if (!categoryId) throw new Error(`Categoria sconosciuta per piatto ${item.number}: ${item.category}`)
+    const nextSort = (sortCounters.get(item.category) ?? 0) + 1
+    sortCounters.set(item.category, nextSort)
+    const prep = prepByCategory.get(item.category) ?? 10
+
+    const existing = existingItemByNumber.get(item.number)
+    if (existing) {
+      // Update: NON tocca isAvailable (preserva i toggle "esaurito" del titolare).
+      await db
+        .update(menuItems)
+        .set({
+          categoryId,
+          name: item.name,
+          priceCents: item.priceCents,
+          prepTimeMinutes: prep,
+          sortOrder: nextSort,
+          vatRate: 10,
+          deletedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(menuItems.id, existing.id))
+      itemUpdated++
+    } else {
+      await db.insert(menuItems).values({
         tenantId,
-        categoryId: item.categoryId,
+        categoryId,
+        menuNumber: item.number,
         name: item.name,
-        description: item.description,
+        description: null,
         priceCents: item.priceCents,
-        vatRate: item.vatRate ?? 10,
-        prepTimeMinutes: item.prepTimeMinutes,
-        sortOrder: item.sortOrder,
+        vatRate: 10,
+        prepTimeMinutes: prep,
+        sortOrder: nextSort,
         isAvailable: true,
-      }))
-    )
-
-    console.info(`✓ Creati ${items.length} piatti di esempio`)
-  } else {
-    console.info(`✓ Piatti già presenti (${existingItems.length})`)
+      })
+      itemCreated++
+    }
   }
 
+  // Rimuovi piatti obsoleti: quelli senza numero (placeholder vecchi) o con un
+  // numero non più presente nel menu reale.
+  const desiredNumbers = new Set(MENU_ITEMS.map((i) => i.number))
+  const obsoleteItemIds = existingItems
+    .filter((i) => i.menuNumber == null || !desiredNumbers.has(i.menuNumber))
+    .map((i) => i.id)
+  if (obsoleteItemIds.length > 0) {
+    await db.delete(menuItems).where(inArray(menuItems.id, obsoleteItemIds))
+  }
+
+  // Rimuovi categorie obsolete (placeholder) ora che nessun piatto le referenzia.
+  const obsoleteCatIds = existingCategories
+    .filter((c) => !desiredCatNames.has(c.name))
+    .map((c) => c.id)
+  if (obsoleteCatIds.length > 0) {
+    await db.delete(menuCategories).where(inArray(menuCategories.id, obsoleteCatIds))
+  }
+
+  console.info(
+    `✓ Piatti: ${itemCreated} creati, ${itemUpdated} aggiornati, ${obsoleteItemIds.length} rimossi; categorie obsolete rimosse: ${obsoleteCatIds.length}`
+  )
+
   // ----------------------------------------------------------------------
-  // CAP serviti (Livorno placeholder)
+  // CAP serviti (Livorno) — upsert per (tenantId, postalCode)
   // ----------------------------------------------------------------------
+  const caps = [
+    { postalCode: '57121', city: 'Livorno', deliveryFeeCents: 200, zone: 'near' },
+    { postalCode: '57122', city: 'Livorno', deliveryFeeCents: 250, zone: 'medium' },
+    { postalCode: '57123', city: 'Livorno', deliveryFeeCents: 300, zone: 'far' },
+    { postalCode: '57125', city: 'Livorno', deliveryFeeCents: 200, zone: 'near' },
+    { postalCode: '57126', city: 'Livorno', deliveryFeeCents: 200, zone: 'near' },
+    { postalCode: '57127', city: 'Livorno', deliveryFeeCents: 300, zone: 'far' },
+    { postalCode: '57128', city: 'Livorno', deliveryFeeCents: 350, zone: 'far' },
+  ]
+
   const existingCaps = await db.query.tenantPostalCodes.findMany({
     where: eq(tenantPostalCodes.tenantId, tenantId),
   })
-
-  if (existingCaps.length === 0) {
-    const caps = [
-      { postalCode: '57121', city: 'Livorno', deliveryFeeCents: 200, zone: 'near' },
-      { postalCode: '57122', city: 'Livorno', deliveryFeeCents: 250, zone: 'medium' },
-      { postalCode: '57123', city: 'Livorno', deliveryFeeCents: 300, zone: 'far' },
-      { postalCode: '57125', city: 'Livorno', deliveryFeeCents: 200, zone: 'near' },
-      { postalCode: '57126', city: 'Livorno', deliveryFeeCents: 200, zone: 'near' },
-      { postalCode: '57127', city: 'Livorno', deliveryFeeCents: 300, zone: 'far' },
-      { postalCode: '57128', city: 'Livorno', deliveryFeeCents: 350, zone: 'far' },
-    ]
-
+  const existingCapSet = new Set(existingCaps.map((c) => c.postalCode))
+  const newCaps = caps.filter((c) => !existingCapSet.has(c.postalCode))
+  if (newCaps.length > 0) {
     await db.insert(tenantPostalCodes).values(
-      caps.map((c) => ({
+      newCaps.map((c) => ({
         tenantId,
         postalCode: c.postalCode,
         city: c.city,
@@ -253,18 +277,15 @@ async function main() {
         isServed: true,
       }))
     )
-
-    console.info(`✓ Inseriti ${caps.length} CAP serviti`)
-  } else {
-    console.info(`✓ CAP già presenti (${existingCaps.length})`)
   }
+  console.info(`✓ CAP serviti: ${newCaps.length} inseriti, ${existingCaps.length} già presenti`)
 
   // ----------------------------------------------------------------------
   // Customer di test (solo in dev/staging)
   // ----------------------------------------------------------------------
   if (process.env.NODE_ENV !== 'production') {
     const existingTestCustomer = await db.query.customers.findFirst({
-      where: eq(customers.phone, '+393331234567'),
+      where: and(eq(customers.tenantId, tenantId), eq(customers.phone, '+393331234567')),
     })
 
     if (!existingTestCustomer) {
