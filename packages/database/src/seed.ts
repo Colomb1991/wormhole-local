@@ -20,7 +20,9 @@
 import 'dotenv/config'
 import { config } from 'dotenv'
 import { resolve } from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { and, eq, inArray } from 'drizzle-orm'
+import { hashPassword } from '@wormhole/core/auth/password'
 
 import { MENU_CATEGORIES, MENU_ITEMS } from './seed-menu'
 
@@ -36,6 +38,8 @@ const {
   customers,
   orderSequences,
   tenantPauseState,
+  users,
+  tenantUsers,
 } = await import('./index')
 
 const TENANT_SLUG = 'cinese-usdt'
@@ -309,6 +313,56 @@ async function main() {
       console.info('✓ Customer di test creato (Mario Rossi, +393331234567, code 1234)')
     } else {
       console.info('✓ Customer di test già presente')
+    }
+  }
+
+  // ----------------------------------------------------------------------
+  // Utente titolare di test (solo in dev/staging)
+  // Login app owner: titolare@almare.test / almare2026
+  // ----------------------------------------------------------------------
+  if (process.env.NODE_ENV !== 'production') {
+    const OWNER_EMAIL = 'titolare@almare.test'
+    const existingOwner = await db.query.users.findFirst({
+      where: eq(users.email, OWNER_EMAIL),
+    })
+
+    let ownerUserId: string
+    if (existingOwner) {
+      ownerUserId = existingOwner.id
+      // Garantisce che la password di test resti valida anche se l'hash
+      // cambia formato tra sessioni di sviluppo.
+      if (!existingOwner.passwordHash) {
+        await db
+          .update(users)
+          .set({ passwordHash: hashPassword('almare2026'), updatedAt: new Date() })
+          .where(eq(users.id, ownerUserId))
+        console.info('✓ Password owner di test reimpostata')
+      } else {
+        console.info('✓ Utente titolare di test già presente')
+      }
+    } else {
+      const [createdOwner] = await db
+        .insert(users)
+        .values({
+          id: randomUUID(),
+          email: OWNER_EMAIL,
+          fullName: 'Titolare Al Mare (test)',
+          role: 'owner',
+          passwordHash: hashPassword('almare2026'),
+          isActive: true,
+        })
+        .returning()
+      if (!createdOwner) throw new Error('Failed to create owner user')
+      ownerUserId = createdOwner.id
+      console.info(`✓ Utente titolare di test creato (${OWNER_EMAIL} / almare2026)`)
+    }
+
+    const existingLink = await db.query.tenantUsers.findFirst({
+      where: and(eq(tenantUsers.tenantId, tenantId), eq(tenantUsers.userId, ownerUserId)),
+    })
+    if (!existingLink) {
+      await db.insert(tenantUsers).values({ tenantId, userId: ownerUserId, role: 'owner' })
+      console.info('✓ Associazione titolare ↔ tenant creata')
     }
   }
 
