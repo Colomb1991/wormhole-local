@@ -138,3 +138,10 @@ dettagliato in `docs/sessions/2026-06-10-sviluppo-autonomo.md`.
       step (telefono → registrazione/bentornato → codice consegna). Tema per
       tenant via `TenantTheme`. Sessione cliente in cookie HttpOnly +
       `customer_sessions`.
+- [x] **Feature 2 — Menu lato cliente** (FEATURE_SPECS sez. 2): pagina menu
+      `/r/[slug]/menu`, categorie + piatti dal DB (esclusi soft-deleted,
+      "Esaurito" per non disponibili), tema dal tenant. Logica pura stato
+      operativo in `@wormhole/core` (`restaurant/status.ts`, +7 test): aperto/
+      chiuso/prima-finestra/dopo-finestra/pausa con messaggi italiani. Store
+      carrello Zustand (`lib/cart-store.ts`, persist localStorage, per-tenant) +
+      barra carrello flottante. Card piatto con "+" (haptic) e numero di menu.
