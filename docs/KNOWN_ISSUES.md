@@ -38,6 +38,24 @@ _(nessuno al momento)_
 
 ## ✅ Risolti
 
+### RIS-003 — Le app Next non leggevano `.env.local` dalla root (DT-009)
+
+**Sessione:** 2026-06-11 (app titolare).
+**Severità originale:** 🟡 Media (workaround: copiare il file a mano).
+
+**Sintomo:** Next.js carica i file `.env*` solo dalla cartella dell'app
+(`apps/client` ecc.), non dalla root del monorepo. Stefano ha dovuto copiare
+`.env.local` in `apps/client` a mano per far partire `pnpm dev`.
+
+**Fix:** ogni `next.config.ts` (client/owner/admin) ora carica esplicitamente
+il file di root con `dotenv`:
+`config({ path: resolve(__dirname, '../../.env.local'), override: true })`.
+`override: true` fa vincere SEMPRE la root su eventuali copie locali stantie.
+In CI/Vercel il file non esiste → no-op, valgono le env del processo.
+Verificato: build del client riuscito con la sola copia di root (copia locale
+temporaneamente rinominata e poi ripristinata — può essere eliminata, vedi
+SETUP.md sez. 1).
+
 ### RIS-002 — Password DB Supabase esposta negli output → ruotata
 
 **Sessione:** 2026-06-08 (vedi `docs/sessions/2026-06-08-setup-iniziale.md`)

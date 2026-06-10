@@ -18,6 +18,12 @@ cd wormhole-local
 
 Verifica con `ls -la` (Mac/Linux) o `dir /a` (Windows) che `.env.local` esista nella root.
 
+> **Una sola copia, nella root.** I `next.config.ts` delle tre app caricano
+> `.env.local` dalla root del monorepo (con override): NON servono copie in
+> `apps/client`, `apps/owner` o `apps/admin`. Se in passato hai copiato il file
+> dentro un'app, puoi eliminare quella copia — e in ogni caso vince la root.
+> In CI/Vercel il file non esiste e valgono le env del processo/progetto.
+
 ---
 
 ## 2. Installa le dipendenze (una volta sola, ~1 minuto)

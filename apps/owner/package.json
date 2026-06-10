@@ -14,6 +14,8 @@
     "@wormhole/shared": "workspace:*",
     "@wormhole/ui": "workspace:*",
     "@wormhole/core": "workspace:*",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.36.4",
     "next": "^16.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
