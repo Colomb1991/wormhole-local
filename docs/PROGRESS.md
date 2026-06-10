@@ -160,3 +160,20 @@ dettagliato in `docs/sessions/2026-06-10-sviluppo-autonomo.md`.
       `calculateOrderTotals` testati). Pagina conferma `/orders/[id]/confirmed`
       con codice consegna e riepilogo. ⚠️ Compatibilità CAP degli slot
       temporaneamente sempre true (matrice distanze DT-002 non ancora popolata).
+
+### In sospeso / prossimo
+
+- App titolare (owner): ricezione ordini, accept/reject, stampa comanda,
+  realtime (FEATURE_SPECS 8-9). Gli ordini cliente restano `pending`: nessuno
+  li gestisce ancora.
+- Compatibilità CAP reale negli slot (DT-007) → richiede `distances-matrix.ts`
+  (DT-002). Notifiche (11), stato ordine realtime (10), timeout pending (10.3),
+  storico/riordina (12), feedback (13), admin (14).
+- Verifica prezzi OCR e anagrafica tenant (DT-008). Fix `baseUrl` per
+  owner/admin quando useranno l'alias `@/`.
+
+### Qualità a fine sessione
+
+49 → **66 test**, typecheck + lint puliti (7 package), build client verde (tutte
+le rotte tenant `force-dynamic`). 6 commit su `dev`. Report dettagliato in
+`docs/sessions/2026-06-10-sviluppo-autonomo.md`.

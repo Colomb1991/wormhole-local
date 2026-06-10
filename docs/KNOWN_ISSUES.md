@@ -159,3 +159,35 @@ generati e revisionati (`migrations/*.sql`) e ne tiene lo storico in
 interattivo, se mai servisse un sync rapido senza migrazione.
 
 **Quando affrontare:** già adottato. Voce informativa per le sessioni future.
+
+### DT-007 — Compatibilità CAP degli slot temporaneamente disattivata
+
+**Sessione:** 2026-06-10 (sviluppo autonomo).
+
+L'algoritmo slot (`@wormhole/core` `calculateAvailableSlots`) accetta una
+funzione `isCapCompatible(newCap, existingCaps)` per scartare gli slot in cui il
+rider non farebbe in tempo a servire CAP troppo distanti (FEATURE_SPECS 4.5).
+La logica reale richiede la **matrice distanze** (`cap_distance_matrix`), che
+NON è ancora popolata (dipende da DT-002 — geocoding Nominatim dei CAP).
+
+Per ora, in `apps/client/lib/slots.ts`, `isCapCompatible` ritorna **sempre
+true**: si controlla solo la capacità numerica dello slot
+(`ordersPerSlot`), non la compatibilità geografica.
+
+**Quando affrontare:** dopo aver eseguito `scripts/distances-matrix.ts` per
+popolare coordinate CAP + matrice. Poi sostituire lo stub con un lookup reale
+sulla matrice (replicando la formula di `cap-compatibility.ts` già testata in
+core) e passare la config rider del tenant.
+
+### DT-008 — Prezzi menu da verificare (OCR)
+
+**Sessione:** 2026-06-10.
+
+Il menu reale è stato trascritto via OCR da foto (`docs/menu-reale.md`). Tre
+prezzi erano segnalati come letture incerte `(?)` e vanno verificati contro il
+menu cartaceo: **#38** Spaghetti di Soia con Carne Piccante (4,80€), **#60**
+Pollo con Gamberi e Funghi (5,00€), **#92** Gamberi alla Griglia con Sale e Pepe
+(7,00€). Anche email e numero civico del tenant sono ancora placeholder/da
+confermare. Correggibili via aggiornamento del seed (o pannello admin futuro).
+
+**Quando affrontare:** appena Stefano può controllare con la titolare.
