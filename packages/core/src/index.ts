@@ -7,4 +7,6 @@ export * from './cart/calculator'
 
 export * from './customer-codes/generator'
 
+export * from './customers/onboarding'
+
 export * from './delivery/haversine'

@@ -113,3 +113,28 @@ Branch corrente: `dev`. I comandi pnpm di questa sessione usano il prefisso PATH
 `%LOCALAPPDATA%\pnpm-shim`; in terminali nuovi `pnpm` funziona diretto. `gh` CLI
 non installato: il push ha usato le credenziali già in cache nel Windows
 Credential Manager.
+
+---
+
+## 2026-06-10 (Mer) — Sviluppo autonomo: menu reale + Feature 1/2/3
+
+**Sessione:** Claude Code locale in autonomia estesa (carta bianca). Vedi report
+dettagliato in `docs/sessions/2026-06-10-sviluppo-autonomo.md`.
+**Focus:** menu reale nel seed, poi le prime tre feature lato cliente.
+
+### Fatto
+
+- [x] **Menu reale "Al Mare"** (sostituito placeholder DT-001): nuova colonna
+      additiva `menu_items.menu_number` + UNIQUE(tenant_id, menu_number),
+      migrazione `0001_silky_sugar_man.sql`. `seed-menu.ts` con 12 categorie +
+      135 piatti. `seed.ts` riscritto come riconciliazione idempotente
+      (upsert per slug/nome/menu_number); anagrafica tenant aggiornata
+      (nome, telefono fisso, tagline). Applicato al DB reale, idempotenza
+      verificata (2° run: 0 create, 135 update, 0 remove).
+- [x] **Feature 1 — Onboarding cliente** (FEATURE_SPECS sez. 1): logica pura in
+      `@wormhole/core` (`customers/onboarding.ts`, +7 test), data layer client
+      (`lib/tenant.ts`, `lib/session.ts`, `lib/customer-service.ts`), Server
+      Actions (`identifyCustomerAction`, `registerCustomerAction`), UI flow a
+      step (telefono → registrazione/bentornato → codice consegna). Tema per
+      tenant via `TenantTheme`. Sessione cliente in cookie HttpOnly +
+      `customer_sessions`.
