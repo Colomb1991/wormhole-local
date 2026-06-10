@@ -209,3 +209,32 @@ Pollo con Gamberi e Funghi (5,00€), **#92** Gamberi alla Griglia con Sale e Pe
 confermare. Correggibili via aggiornamento del seed (o pannello admin futuro).
 
 **Quando affrontare:** appena Stefano può controllare con la titolare.
+
+### DT-010 — Manutenzione ordini "lazy" (niente job in background)
+
+**Sessione:** 2026-06-11.
+
+Il timeout dei pending (FEATURE_SPECS 10.3) e l'auto-transizione
+accepted→preparing (8.4) girano **solo quando qualcuno carica la dashboard
+owner** (`sweepStaleOrders` in `apps/owner/lib/orders.ts`, chiamata dalla
+pagina e da `fetchBoardAction`). Se l'app titolare resta chiusa, un ordine
+pending scaduto non viene annullato finché non si riapre la dashboard — il
+cliente non riceve quindi la notifica di annullamento "entro 5 minuti" in
+senso stretto.
+
+**Quando affrontare:** quando si introducono notifiche push (sez. 11) servirà
+comunque un trigger server-side: a quel punto spostare lo sweep in un cron
+(Vercel Cron o simile) e togliere la chiamata lazy.
+
+### DT-011 — Allarme audio owner soggetto ad autoplay policy
+
+**Sessione:** 2026-06-11.
+
+L'allarme nuovi ordini usa WebAudio: i browser bloccano l'audio finché
+l'utente non ha interagito almeno una volta con la pagina. Al primo
+caricamento della dashboard senza interazione il suono può non partire
+(badge e vibrazione funzionano comunque). Con l'app installata come PWA e
+usata normalmente il problema in pratica non si pone.
+
+**Quando affrontare:** con le notifiche push (sez. 11), che hanno suono di
+sistema e non dipendono dalla pagina aperta.

@@ -177,3 +177,49 @@ dettagliato in `docs/sessions/2026-06-10-sviluppo-autonomo.md`.
 49 → **66 test**, typecheck + lint puliti (7 package), build client verde (tutte
 le rotte tenant `force-dynamic`). 6 commit su `dev`. Report dettagliato in
 `docs/sessions/2026-06-10-sviluppo-autonomo.md`.
+
+---
+
+## 2026-06-11 (Gio) — Sviluppo autonomo 2: app titolare
+
+**Sessione:** Claude Code locale in autonomia estesa. Report dettagliato in
+`docs/sessions/2026-06-11-app-titolare.md`.
+**Focus:** fix env monorepo, poi l'app owner da scheletro a funzionante.
+
+### Fatto
+
+- [x] **FIX-ENV (DT-009 → RIS-003)**: i 3 `next.config.ts` caricano `.env.local`
+      dalla ROOT con dotenv `override: true` (la root vince sulle copie locali
+      stantie; no-op in CI/Vercel). Verificato buildando il client con la sola
+      copia root. SETUP.md aggiornato. + `baseUrl` nelle tsconfig owner/admin.
+- [x] **Auth titolare** (sez. 8.1, v0): migrazione additiva 0002 —
+      `users.password_hash` + tabella `user_sessions`. Hash scrypt in
+      `@wormhole/core/auth/password` (subpath export, +6 test). Login
+      email+password, sessione cookie HttpOnly, logout. Seed: utente di test
+      `titolare@almare.test` / `almare2026`.
+- [x] **Macchina a stati ordini** in core (`orders/transitions.ts`, +8 test):
+      ORDER_TRANSITIONS, canTransition, STATUS_TIMESTAMP_FIELD,
+      buildStatusChange, isPendingExpired, shouldAutoStartPreparing.
+- [x] **Dashboard ordini** (sez. 8.2-8.3): board raggruppata per stato con
+      totali del giorno, polling 12s, allarme WebAudio 3 toni + vibrazione +
+      badge titolo per i pending, toggle silenzia.
+- [x] **Azioni ordine** (sez. 8.4-8.8): accetta / rifiuta con motivo / pronto /
+      rider uscito / consegnato **con verifica codice consegna** / annulla.
+      Transizioni validate da core, status_history append, guardia
+      ottimistica anti-race.
+- [x] **Timeout automatici** (sez. 10.3 + 8.4): sweep lazy a ogni fetch board —
+      pending oltre timeout → cancelled; accepted >30s → preparing.
+- [x] **Dettaglio ordine** con cliente, codice, totali/resto, timeline;
+      **vista comanda** stampabile a video (monospace 80mm, numero menu,
+      scorporo IVA, @media print) — ESC/POS fisico rinviato (serve hardware).
+- [x] **Pausa ordini** (sez. 8.9): toggle → `tenant_pause_state` (il client
+      mostra già il banner). **Storico ordini** per giorno con fatturato.
+- [x] Verifica runtime su DB reale: login/redirect/dashboard via dev server;
+      ciclo di vita ordine completo (transizione illegale rifiutata, happy
+      path, history e timestamp corretti). ⚠️ Nota: l'ordine #1 di test di
+      Stefano è stato auto-annullato dal timeout (dato intatto, da spec 10.3).
+
+### Qualità a fine sessione
+
+66 → **80 test**, typecheck + lint + build (client e owner) verdi. Migrazione
+0002 applicata al DB reale, seed idempotente aggiornato.
