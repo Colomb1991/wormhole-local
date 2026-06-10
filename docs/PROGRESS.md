@@ -150,3 +150,13 @@ dettagliato in `docs/sessions/2026-06-10-sviluppo-autonomo.md`.
       (`calculatePrepTime` da core), banner "mancano X€" sotto soglia minima
       (`validateCart` da core), stato vuoto, blocco "Continua" se sotto minimo o
       ristorante non operativo. Pronto a passare al checkout (Feature 5).
+- [x] **Feature 5 (parziale) — Checkout cash-only + slot** (FEATURE_SPECS sez. 7,
+      4): pagina `/r/[slug]/checkout` con riepilogo, indirizzo (precompilato dal
+      profilo) + dropdown CAP con tariffa, selezione slot di consegna
+      (`slot-calculator` di core via `getSlotsAction`), pagamento alla consegna
+      con calcolo resto (`calculateCashChange`). Server Action `createOrderAction`
+      con anti-tampering prezzi, ri-validazione carrello e slot, creazione ordine
+      in transazione con order number sequenziale (`buildOrderItems`,
+      `calculateOrderTotals` testati). Pagina conferma `/orders/[id]/confirmed`
+      con codice consegna e riepilogo. ⚠️ Compatibilità CAP degli slot
+      temporaneamente sempre true (matrice distanze DT-002 non ancora popolata).

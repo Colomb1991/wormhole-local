@@ -11,4 +11,6 @@ export * from './customers/onboarding'
 
 export * from './restaurant/status'
 
+export * from './orders/totals'
+
 export * from './delivery/haversine'
