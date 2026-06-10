@@ -145,3 +145,8 @@ dettagliato in `docs/sessions/2026-06-10-sviluppo-autonomo.md`.
       chiuso/prima-finestra/dopo-finestra/pausa con messaggi italiani. Store
       carrello Zustand (`lib/cart-store.ts`, persist localStorage, per-tenant) +
       barra carrello flottante. Card piatto con "+" (haptic) e numero di menu.
+- [x] **Feature 3 — Carrello** (FEATURE_SPECS sez. 3): pagina `/r/[slug]/cart`
+      con gestione quantità (+/−), subtotale, tempo di prep stimato
+      (`calculatePrepTime` da core), banner "mancano X€" sotto soglia minima
+      (`validateCart` da core), stato vuoto, blocco "Continua" se sotto minimo o
+      ristorante non operativo. Pronto a passare al checkout (Feature 5).
